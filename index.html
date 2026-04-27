@@ -87,33 +87,6 @@ body {
   min-height: 0;
 }
 
-/* ── ページ (あいさつ用) ── */
-.page {
-  flex: 1;
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  grid-template-rows: 1fr 1fr;
-  gap: 10px;
-  min-height: 0;
-}
-.page.hidden { display: none; }
-
-/* ── ページナビ ── */
-.page-nav {
-  flex-shrink: 0;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  gap: 10px;
-  height: 36px;
-}
-.dot {
-  width: 10px; height: 10px; border-radius: 50%;
-  background: #ccc; cursor: pointer;
-  transition: background 0.2s;
-}
-.dot.active { background: #007bff; }
-
 /* ── ボタンラップ ── */
 .btn-wrap {
   display: flex;
@@ -244,122 +217,53 @@ body {
 <!-- あいさつ ペイン                        -->
 <!-- ══════════════════════════════════════ -->
 <div class="pane" id="paneA" style="display:none">
-
-  <!-- Page 0: はい/いいえ ・ おはよう/ありがとう -->
-  <div class="page" id="pgA0">
+  <div class="btn-grid-fill">
 
     <div class="btn-wrap">
       <div class="sel-row">
-        <select class="btn-select" id="sel0" onchange="updateBtn(0)">
-          <option value="5">はい</option>
-          <option value="11">ぴんぽん</option>
-        </select>
+        <select class="btn-select" id="sel0" onchange="updateBtn(0)"></select>
       </div>
       <button class="action-btn" onclick="sendSel(0)">
-        <img id="img0" src="img/05.jpg" onerror="this.style.display='none'">
-        <div class="fallback" id="fb0">はい</div>
-        <div class="label"  id="lbl0">はい</div>
+        <img id="img0" src="" onerror="this.style.display='none'">
+        <div class="fallback" id="fb0">-</div>
+        <div class="label"  id="lbl0">-</div>
       </button>
     </div>
 
     <div class="btn-wrap">
       <div class="sel-row">
-        <select class="btn-select" id="sel1" onchange="updateBtn(1)">
-          <option value="6">いいえ</option>
-          <option value="23">ブッブー</option>
-        </select>
+        <select class="btn-select" id="sel1" onchange="updateBtn(1)"></select>
       </div>
       <button class="action-btn" onclick="sendSel(1)">
-        <img id="img1" src="img/06.jpg" onerror="this.style.display='none'">
-        <div class="fallback" id="fb1">いいえ</div>
-        <div class="label"  id="lbl1">いいえ</div>
+        <img id="img1" src="" onerror="this.style.display='none'">
+        <div class="fallback" id="fb1">-</div>
+        <div class="label"  id="lbl1">-</div>
       </button>
     </div>
 
     <div class="btn-wrap">
       <div class="sel-row">
-        <select class="btn-select" id="sel2" onchange="updateBtn(2)">
-          <option value="7">おはよう</option>
-          <option value="15">こんにちは</option>
-        </select>
+        <select class="btn-select" id="sel2" onchange="updateBtn(2)"></select>
       </div>
       <button class="action-btn" onclick="sendSel(2)">
-        <img id="img2" src="img/07.jpg" onerror="this.style.display='none'">
-        <div class="fallback" id="fb2">おはよう</div>
-        <div class="label"  id="lbl2">おはよう</div>
+        <img id="img2" src="" onerror="this.style.display='none'">
+        <div class="fallback" id="fb2">-</div>
+        <div class="label"  id="lbl2">-</div>
       </button>
     </div>
 
     <div class="btn-wrap">
       <div class="sel-row">
-        <select class="btn-select" id="sel3" onchange="updateBtn(3)">
-          <option value="9">ありがとう</option>
-        </select>
+        <select class="btn-select" id="sel3" onchange="updateBtn(3)"></select>
       </div>
       <button class="action-btn" onclick="sendSel(3)">
-        <img id="img3" src="img/09.jpg" onerror="this.style.display='none'">
-        <div class="fallback" id="fb3">ありがとう</div>
-        <div class="label"  id="lbl3">ありがとう</div>
+        <img id="img3" src="" onerror="this.style.display='none'">
+        <div class="fallback" id="fb3">-</div>
+        <div class="label"  id="lbl3">-</div>
       </button>
     </div>
 
-  </div><!-- /pgA0 -->
-
-  <!-- Page 1: カスタム×4 -->
-  <div class="page hidden" id="pgA1">
-
-    <div class="btn-wrap">
-      <div class="sel-row">
-        <select class="btn-select" id="sel4" onchange="updateBtn(4)"></select>
-      </div>
-      <button class="action-btn" onclick="sendSel(4)">
-        <img id="img4" src="" onerror="this.style.display='none'">
-        <div class="fallback" id="fb4">-</div>
-        <div class="label"  id="lbl4">-</div>
-      </button>
-    </div>
-
-    <div class="btn-wrap">
-      <div class="sel-row">
-        <select class="btn-select" id="sel5" onchange="updateBtn(5)"></select>
-      </div>
-      <button class="action-btn" onclick="sendSel(5)">
-        <img id="img5" src="" onerror="this.style.display='none'">
-        <div class="fallback" id="fb5">-</div>
-        <div class="label"  id="lbl5">-</div>
-      </button>
-    </div>
-
-    <div class="btn-wrap">
-      <div class="sel-row">
-        <select class="btn-select" id="sel6" onchange="updateBtn(6)"></select>
-      </div>
-      <button class="action-btn" onclick="sendSel(6)">
-        <img id="img6" src="" onerror="this.style.display='none'">
-        <div class="fallback" id="fb6">-</div>
-        <div class="label"  id="lbl6">-</div>
-      </button>
-    </div>
-
-    <div class="btn-wrap">
-      <div class="sel-row">
-        <select class="btn-select" id="sel7" onchange="updateBtn(7)"></select>
-      </div>
-      <button class="action-btn" onclick="sendSel(7)">
-        <img id="img7" src="" onerror="this.style.display='none'">
-        <div class="fallback" id="fb7">-</div>
-        <div class="label"  id="lbl7">-</div>
-      </button>
-    </div>
-
-  </div><!-- /pgA1 -->
-
-  <!-- ページナビ (ドット) -->
-  <div class="page-nav">
-    <div class="dot active" id="dot0" onclick="setPage(0)"></div>
-    <div class="dot"        id="dot1" onclick="setPage(1)"></div>
   </div>
-
 </div><!-- /paneA -->
 
 <script>
@@ -420,22 +324,24 @@ var MODES = [
   {m:51, n:'いらっしゃいませ',     img:'51'},
 ];
 
-var CUSTOM_DEFAULTS = [18, 10, 25, 13];
+// デフォルト: 左上=こんにちは, 右上=いってきます, 左下=ありがとう, 右下=バイバイ
+var CUSTOM_DEFAULTS = [15, 8, 9, 10];
 
 // ─────────────────────────────────────────
-// カスタムドロップダウン初期化
+// カスタムドロップダウン初期化 (じゃんけん 1-4 は除外)
 // ─────────────────────────────────────────
 function initCustom() {
+  var aisatsuModes = MODES.filter(function(m) { return m.m >= 5; });
   for (var ci = 0; ci < 4; ci++) {
-    var sel = document.getElementById('sel' + (4 + ci));
+    var sel = document.getElementById('sel' + ci);
     var def = CUSTOM_DEFAULTS[ci];
-    MODES.forEach(function(m) {
+    aisatsuModes.forEach(function(m) {
       var o = document.createElement('option');
       o.value = m.m; o.textContent = m.n;
       if (m.m === def) o.selected = true;
       sel.appendChild(o);
     });
-    updateBtn(4 + ci);
+    updateBtn(ci);
   }
 }
 
@@ -453,31 +359,6 @@ function updateBtn(idx) {
   imgEl.style.display = '';
   imgEl.src = 'img/' + code + '.jpg';
 }
-
-// ─────────────────────────────────────────
-// あいさつ ページ切り替え + スワイプ
-// ─────────────────────────────────────────
-var curPage = 0;
-
-function setPage(n) {
-  document.getElementById('pgA0').classList.toggle('hidden', n !== 0);
-  document.getElementById('pgA1').classList.toggle('hidden', n !== 1);
-  document.getElementById('dot0').classList.toggle('active', n === 0);
-  document.getElementById('dot1').classList.toggle('active', n === 1);
-  curPage = n;
-}
-
-// タッチスワイプ
-var swipeX = null;
-document.getElementById('paneA').addEventListener('touchstart', function(e){
-  swipeX = e.touches[0].clientX;
-}, {passive: true});
-document.getElementById('paneA').addEventListener('touchend', function(e){
-  if (swipeX === null) return;
-  var dx = e.changedTouches[0].clientX - swipeX;
-  if (Math.abs(dx) > 50) setPage(dx < 0 ? 1 : 0);
-  swipeX = null;
-}, {passive: true});
 
 // ─────────────────────────────────────────
 // BLE (iPad では Bluefy ブラウザを使用)
