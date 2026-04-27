@@ -1,7 +1,8 @@
 # とものて BLE通信仕様 / ToMonoTe BLE Communication Spec
 
-とものて (ToMonoTe) はコミュニケーションロボットです。
-BLE GATT を使ってスマートフォン・タブレットからモーションを遠隔操作できます。
+とものて (ToMonoTe) は、言葉を話せない子どもがクラスメイトと交流するきっかけを作るために開発されたポータブルロボットハンドです。
+スイッチ操作で「おはよう」「バイバイ」などの挨拶やじゃんけんを自分の意思で表現できます。
+BLE GATT を使ってスマートフォン・タブレットからもモーションを遠隔操作できます。
 
 ---
 
@@ -152,5 +153,6 @@ await sendMotion(char, 4);   // → じゃんけんランダム
 
 ## 6. 参考
 
+- とものて 紹介ページ: https://protopedia.net/prototype/5011
 - コントローラ WebApp: https://ogimo-tech.github.io/ToMonoTe_controller/
 - ソースコード: https://github.com/ogimo-tech/ToMonoTe_controller
