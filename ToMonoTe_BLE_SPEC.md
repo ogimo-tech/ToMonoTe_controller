@@ -1,6 +1,6 @@
 # とものて BLE通信仕様 / ToMonoTe BLE Communication Spec
 
-とものて (ToMonoTe) は ESP32 上で動作するコミュニケーションロボットです。
+とものて (ToMonoTe) はコミュニケーションロボットです。
 BLE GATT を使ってスマートフォン・タブレットからモーションを遠隔操作できます。
 
 ---
@@ -9,7 +9,7 @@ BLE GATT を使ってスマートフォン・タブレットからモーショ�
 
 | 項目 | 値 |
 |------|-----|
-| デバイス名プレフィックス | `ToMonoTe-BLE-XXXX` ※末尾4文字はMACアドレス下2バイト |
+| デバイス名プレフィックス | `ToMonoTe-BLE-XXXX` ※末尾4文字はデバイス固有の識別子 |
 | Service UUID | `B1E00030-5011-4B52-8E2D-9B1C3D4E5F60` |
 | Characteristic UUID | `B1E00031-5011-4B52-8E2D-9B1C3D4E5F60` |
 | プロパティ | Write (Write Without Response も可) |
@@ -145,7 +145,7 @@ await sendMotion(char, 4);   // → じゃんけんランダム
 
 - **iOS / iPadOS**: Safari は Web Bluetooth API 非対応。**[Bluefy](https://apps.apple.com/app/bluefy-web-ble-browser/id1492912960)** アプリ（App Store）を使用してください。
 - **Android / Windows**: Chrome ブラウザで Web Bluetooth API が使用できます。
-- 複数デバイスが近くにある場合、デバイス名末尾4文字（MACアドレス由来）でロボット個体を識別できます。
+- 複数デバイスが近くにある場合、デバイス名末尾4文字でロボット個体を識別できます。
 - コマンドに対するレスポンス（返信）はありません。モーション実行は一方向の送信のみです。
 
 ---
