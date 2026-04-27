@@ -1,0 +1,550 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+<title>とものて コントローラ</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: -apple-system, 'Helvetica Neue', Arial, sans-serif;
+  background: #f4f4f9;
+  color: #333;
+  height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* ── Header ── */
+.header {
+  background: #fff;
+  padding: 0 16px;
+  height: 54px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border-bottom: 3px solid #007bff;
+  flex-shrink: 0;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.08);
+}
+.header h1 { font-size: 1.05em; flex: 1; color: #2c3e50; font-weight: bold; }
+
+.ble-row { display: flex; align-items: center; gap: 7px; }
+.ble-dot {
+  width: 11px; height: 11px; border-radius: 50%;
+  background: #ccc; flex-shrink: 0; transition: background 0.3s;
+}
+.ble-dot.on  { background: #28a745; }
+.ble-dot.try { background: #ffc107; }
+#bleName {
+  font-size: 0.76em; color: #666; max-width: 130px;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.ble-btn {
+  background: #28a745; color: #fff; border: none;
+  border-radius: 20px; padding: 6px 16px;
+  font-size: 0.82em; cursor: pointer; font-weight: bold;
+  white-space: nowrap; transition: background 0.2s;
+}
+.ble-btn:active { background: #1e7e34; }
+.ble-btn.try { background: #ffc107; color: #333; }
+.ble-btn.on  { background: #6c757d; }
+
+/* ── Tabs ── */
+.tabs { display: flex; flex-shrink: 0; }
+.tab {
+  flex: 1; text-align: center;
+  padding: 13px 4px; font-size: 1em;
+  cursor: pointer; font-weight: bold;
+  background: #e9ecef; color: #888;
+  border-bottom: 3px solid #dee2e6;
+  transition: background 0.2s, color 0.2s;
+}
+.tab.active {
+  background: #007bff; color: #fff;
+  border-bottom-color: #007bff;
+}
+
+/* ── 共通ペイン ── */
+.pane {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  padding: 10px;
+  gap: 10px;
+}
+
+/* ── 2×2 グリッド (縦横ぴったり埋める) ── */
+.btn-grid-fill {
+  flex: 1;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: 1fr 1fr;
+  gap: 10px;
+  min-height: 0;
+}
+
+/* ── ページ (あいさつ用) ── */
+.page {
+  flex: 1;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: 1fr 1fr;
+  gap: 10px;
+  min-height: 0;
+}
+.page.hidden { display: none; }
+
+/* ── ページナビ ── */
+.page-nav {
+  flex-shrink: 0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 10px;
+  height: 36px;
+}
+.dot {
+  width: 10px; height: 10px; border-radius: 50%;
+  background: #ccc; cursor: pointer;
+  transition: background 0.2s;
+}
+.dot.active { background: #007bff; }
+
+/* ── ボタンラップ ── */
+.btn-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-height: 0;
+}
+
+/* ── ドロップダウン ── */
+.sel-row { height: 30px; flex-shrink: 0; display: flex; align-items: center; }
+.btn-select {
+  width: 100%; height: 30px; padding: 0 8px; font-size: 0.78em;
+  border-radius: 8px; border: 1px solid #ced4da;
+  background: #fff; color: #333; cursor: pointer;
+}
+
+/* spacer for fixed-label rows */
+.spacer { height: 34px; flex-shrink: 0; }
+
+/* ── アクションボタン ── */
+.action-btn {
+  flex: 1;
+  width: 100%;
+  min-height: 0;
+  border: none;
+  border-radius: 14px;
+  overflow: hidden;
+  cursor: pointer;
+  position: relative;
+  background: #e9ecef;
+  padding: 0;
+  box-shadow: 0 3px 8px rgba(0,0,0,0.15);
+  transition: transform 0.08s, box-shadow 0.08s;
+  -webkit-tap-highlight-color: transparent;
+}
+.action-btn:active {
+  transform: scale(0.94);
+  box-shadow: 0 1px 3px rgba(0,0,0,0.12);
+}
+.action-btn img {
+  position: absolute; top: 0; left: 0;
+  width: 100%; height: 100%; object-fit: cover; display: block;
+}
+.action-btn .fallback {
+  position: absolute; top: 0; left: 0;
+  width: 100%; height: 100%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 2em; color: #aaa;
+  background: linear-gradient(135deg, #e3eeff 0%, #d6eaff 100%);
+}
+.action-btn .label {
+  position: absolute; bottom: 0; left: 0; right: 0;
+  background: rgba(0,60,130,0.72);
+  text-align: center; padding: 7px 4px;
+  font-size: 0.92em; font-weight: bold; color: #fff;
+  letter-spacing: 0.03em;
+}
+</style>
+</head>
+<body>
+
+<!-- Header -->
+<div class="header">
+  <h1>とものて コントローラ</h1>
+  <div class="ble-row">
+    <div class="ble-dot" id="bleDot"></div>
+    <span id="bleName">未接続</span>
+  </div>
+  <button class="ble-btn" id="bleBtn" onclick="toggleBLE()">接続</button>
+</div>
+
+<!-- Tabs -->
+<div class="tabs">
+  <div class="tab active" id="tabJ" onclick="switchTab('J')">じゃんけん</div>
+  <div class="tab"        id="tabA" onclick="switchTab('A')">あいさつ</div>
+</div>
+
+<!-- ══════════════════════════════════════ -->
+<!-- じゃんけん ペイン                      -->
+<!-- ══════════════════════════════════════ -->
+<div class="pane" id="paneJ">
+  <div class="btn-grid-fill">
+
+    <div class="btn-wrap">
+      <div class="spacer"></div>
+      <button class="action-btn" onclick="send(1)">
+        <img src="img/01.jpg" onerror="this.style.display='none'">
+        <div class="fallback">✊</div>
+        <div class="label">グー</div>
+      </button>
+    </div>
+
+    <div class="btn-wrap">
+      <div class="spacer"></div>
+      <button class="action-btn" onclick="send(2)">
+        <img src="img/02.jpg" onerror="this.style.display='none'">
+        <div class="fallback">✌️</div>
+        <div class="label">チョキ</div>
+      </button>
+    </div>
+
+    <div class="btn-wrap">
+      <div class="spacer"></div>
+      <button class="action-btn" onclick="send(3)">
+        <img src="img/03.jpg" onerror="this.style.display='none'">
+        <div class="fallback">🖐</div>
+        <div class="label">パー</div>
+      </button>
+    </div>
+
+    <div class="btn-wrap">
+      <div class="spacer"></div>
+      <button class="action-btn" onclick="send(4)">
+        <img src="img/04.jpg" onerror="this.style.display='none'">
+        <div class="fallback">🎲</div>
+        <div class="label">ランダム</div>
+      </button>
+    </div>
+
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════ -->
+<!-- あいさつ ペイン                        -->
+<!-- ══════════════════════════════════════ -->
+<div class="pane" id="paneA" style="display:none">
+
+  <!-- Page 0: はい/いいえ ・ おはよう/ありがとう -->
+  <div class="page" id="pgA0">
+
+    <div class="btn-wrap">
+      <div class="sel-row">
+        <select class="btn-select" id="sel0" onchange="updateBtn(0)">
+          <option value="5">はい</option>
+          <option value="11">ぴんぽん</option>
+        </select>
+      </div>
+      <button class="action-btn" onclick="sendSel(0)">
+        <img id="img0" src="img/05.jpg" onerror="this.style.display='none'">
+        <div class="fallback" id="fb0">はい</div>
+        <div class="label"  id="lbl0">はい</div>
+      </button>
+    </div>
+
+    <div class="btn-wrap">
+      <div class="sel-row">
+        <select class="btn-select" id="sel1" onchange="updateBtn(1)">
+          <option value="6">いいえ</option>
+          <option value="23">ブッブー</option>
+        </select>
+      </div>
+      <button class="action-btn" onclick="sendSel(1)">
+        <img id="img1" src="img/06.jpg" onerror="this.style.display='none'">
+        <div class="fallback" id="fb1">いいえ</div>
+        <div class="label"  id="lbl1">いいえ</div>
+      </button>
+    </div>
+
+    <div class="btn-wrap">
+      <div class="sel-row">
+        <select class="btn-select" id="sel2" onchange="updateBtn(2)">
+          <option value="7">おはよう</option>
+          <option value="15">こんにちは</option>
+        </select>
+      </div>
+      <button class="action-btn" onclick="sendSel(2)">
+        <img id="img2" src="img/07.jpg" onerror="this.style.display='none'">
+        <div class="fallback" id="fb2">おはよう</div>
+        <div class="label"  id="lbl2">おはよう</div>
+      </button>
+    </div>
+
+    <div class="btn-wrap">
+      <div class="sel-row">
+        <select class="btn-select" id="sel3" onchange="updateBtn(3)">
+          <option value="9">ありがとう</option>
+        </select>
+      </div>
+      <button class="action-btn" onclick="sendSel(3)">
+        <img id="img3" src="img/09.jpg" onerror="this.style.display='none'">
+        <div class="fallback" id="fb3">ありがとう</div>
+        <div class="label"  id="lbl3">ありがとう</div>
+      </button>
+    </div>
+
+  </div><!-- /pgA0 -->
+
+  <!-- Page 1: カスタム×4 -->
+  <div class="page hidden" id="pgA1">
+
+    <div class="btn-wrap">
+      <div class="sel-row">
+        <select class="btn-select" id="sel4" onchange="updateBtn(4)"></select>
+      </div>
+      <button class="action-btn" onclick="sendSel(4)">
+        <img id="img4" src="" onerror="this.style.display='none'">
+        <div class="fallback" id="fb4">-</div>
+        <div class="label"  id="lbl4">-</div>
+      </button>
+    </div>
+
+    <div class="btn-wrap">
+      <div class="sel-row">
+        <select class="btn-select" id="sel5" onchange="updateBtn(5)"></select>
+      </div>
+      <button class="action-btn" onclick="sendSel(5)">
+        <img id="img5" src="" onerror="this.style.display='none'">
+        <div class="fallback" id="fb5">-</div>
+        <div class="label"  id="lbl5">-</div>
+      </button>
+    </div>
+
+    <div class="btn-wrap">
+      <div class="sel-row">
+        <select class="btn-select" id="sel6" onchange="updateBtn(6)"></select>
+      </div>
+      <button class="action-btn" onclick="sendSel(6)">
+        <img id="img6" src="" onerror="this.style.display='none'">
+        <div class="fallback" id="fb6">-</div>
+        <div class="label"  id="lbl6">-</div>
+      </button>
+    </div>
+
+    <div class="btn-wrap">
+      <div class="sel-row">
+        <select class="btn-select" id="sel7" onchange="updateBtn(7)"></select>
+      </div>
+      <button class="action-btn" onclick="sendSel(7)">
+        <img id="img7" src="" onerror="this.style.display='none'">
+        <div class="fallback" id="fb7">-</div>
+        <div class="label"  id="lbl7">-</div>
+      </button>
+    </div>
+
+  </div><!-- /pgA1 -->
+
+  <!-- ページナビ (ドット) -->
+  <div class="page-nav">
+    <div class="dot active" id="dot0" onclick="setPage(0)"></div>
+    <div class="dot"        id="dot1" onclick="setPage(1)"></div>
+  </div>
+
+</div><!-- /paneA -->
+
+<script>
+// ─────────────────────────────────────────
+// モード定義
+// ─────────────────────────────────────────
+var MODES = [
+  {m:1,  n:'グー',                 img:'01'},
+  {m:2,  n:'チョキ',               img:'02'},
+  {m:3,  n:'パー',                 img:'03'},
+  {m:4,  n:'ランダム',             img:'04'},
+  {m:5,  n:'はい',                 img:'05'},
+  {m:6,  n:'いいえ',               img:'06'},
+  {m:7,  n:'おはよう',             img:'07'},
+  {m:8,  n:'いってきます',         img:'08'},
+  {m:9,  n:'ありがとう',           img:'09'},
+  {m:10, n:'バイバイ',             img:'10'},
+  {m:11, n:'やったー(ぴんぽん)',   img:'11'},
+  {m:12, n:'お願いします',         img:'12'},
+  {m:13, n:'おつかれさま',         img:'13'},
+  {m:14, n:'ただいま',             img:'14'},
+  {m:15, n:'こんにちは',           img:'15'},
+  {m:16, n:'ゲッツ！',             img:'16'},
+  {m:17, n:'なんでやねん',         img:'17'},
+  {m:18, n:'がんばれ',             img:'18'},
+  {m:19, n:'なるほど・それな',     img:'19'},
+  {m:20, n:'いいね',               img:'20'},
+  {m:21, n:'めっちゃおもろいやん', img:'21'},
+  {m:22, n:'はくしゅ',             img:'22'},
+  {m:23, n:'もういいわ(ブッブー)', img:'23'},
+  {m:24, n:'マリオコイン',         img:'24'},
+  {m:25, n:'どーもー',             img:'25'},
+  {m:26, n:'注目！',               img:'26'},
+  {m:27, n:'先生',                 img:'27'},
+  {m:28, n:'遊ぼう！',             img:'28'},
+  {m:29, n:'嬉しい',               img:'29'},
+  {m:30, n:'大好きー！',           img:'30'},
+  {m:31, n:'行く',                 img:'31'},
+  {m:32, n:'行かない',             img:'32'},
+  {m:33, n:'ナイス！',             img:'33'},
+  {m:34, n:'どんまい',             img:'34'},
+  {m:35, n:'おめでとう',           img:'35'},
+  {m:36, n:'またお願いします',     img:'36'},
+  {m:37, n:'どうぞー',             img:'37'},
+  {m:38, n:'ねぇねぇ',             img:'38'},
+  {m:39, n:'はい(ゆっくり)',       img:'39'},
+  {m:40, n:'いいえ(ゆっくり)',     img:'40'},
+  {m:41, n:'おまかせします',       img:'41'},
+  {m:42, n:'HELLO',                img:'42'},
+  {m:43, n:'OK',                   img:'43'},
+  {m:44, n:'THANK YOU',            img:'44'},
+  {m:45, n:'Good Bye',             img:'45'},
+  {m:46, n:'サイコー',             img:'46'},
+  {m:47, n:'いってらっしゃい',     img:'47'},
+  {m:48, n:'がんばるぞ',           img:'48'},
+  {m:49, n:'たすけて',             img:'49'},
+  {m:50, n:'よろしく',             img:'50'},
+  {m:51, n:'いらっしゃいませ',     img:'51'},
+];
+
+var CUSTOM_DEFAULTS = [18, 10, 25, 13];
+
+// ─────────────────────────────────────────
+// カスタムドロップダウン初期化
+// ─────────────────────────────────────────
+function initCustom() {
+  for (var ci = 0; ci < 4; ci++) {
+    var sel = document.getElementById('sel' + (4 + ci));
+    var def = CUSTOM_DEFAULTS[ci];
+    MODES.forEach(function(m) {
+      var o = document.createElement('option');
+      o.value = m.m; o.textContent = m.n;
+      if (m.m === def) o.selected = true;
+      sel.appendChild(o);
+    });
+    updateBtn(4 + ci);
+  }
+}
+
+// ─────────────────────────────────────────
+// ボタン表示更新 (dropdown → 画像・ラベル反映)
+// ─────────────────────────────────────────
+function updateBtn(idx) {
+  var mode  = parseInt(document.getElementById('sel' + idx).value);
+  var entry = MODES.find(function(m){ return m.m === mode; });
+  var name  = entry ? entry.n : '?';
+  var code  = entry ? entry.img : '00';
+  document.getElementById('lbl' + idx).textContent = name;
+  document.getElementById('fb'  + idx).textContent = name;
+  var imgEl = document.getElementById('img' + idx);
+  imgEl.style.display = '';
+  imgEl.src = 'img/' + code + '.jpg';
+}
+
+// ─────────────────────────────────────────
+// あいさつ ページ切り替え + スワイプ
+// ─────────────────────────────────────────
+var curPage = 0;
+
+function setPage(n) {
+  document.getElementById('pgA0').classList.toggle('hidden', n !== 0);
+  document.getElementById('pgA1').classList.toggle('hidden', n !== 1);
+  document.getElementById('dot0').classList.toggle('active', n === 0);
+  document.getElementById('dot1').classList.toggle('active', n === 1);
+  curPage = n;
+}
+
+// タッチスワイプ
+var swipeX = null;
+document.getElementById('paneA').addEventListener('touchstart', function(e){
+  swipeX = e.touches[0].clientX;
+}, {passive: true});
+document.getElementById('paneA').addEventListener('touchend', function(e){
+  if (swipeX === null) return;
+  var dx = e.changedTouches[0].clientX - swipeX;
+  if (Math.abs(dx) > 50) setPage(dx < 0 ? 1 : 0);
+  swipeX = null;
+}, {passive: true});
+
+// ─────────────────────────────────────────
+// BLE (iPad では Bluefy ブラウザを使用)
+// ─────────────────────────────────────────
+var SVC_UUID  = 'b1e00030-5011-4b52-8e2d-9b1c3d4e5f60';
+var CHAR_UUID = 'b1e00031-5011-4b52-8e2d-9b1c3d4e5f60';
+var NAME_PFX  = 'ToMonoTe-BLE-';
+var bleChar = null, bleDevice = null;
+
+async function toggleBLE() {
+  if (bleDevice && bleDevice.gatt.connected) {
+    bleDevice.gatt.disconnect(); return;
+  }
+  try {
+    setStatus('try');
+    bleDevice = await navigator.bluetooth.requestDevice({
+      filters: [{ namePrefix: NAME_PFX }],
+      optionalServices: [SVC_UUID]
+    });
+    bleDevice.addEventListener('gattserverdisconnected', function(){
+      bleChar = null; setStatus('off');
+    });
+    var server  = await bleDevice.gatt.connect();
+    var service = await server.getPrimaryService(SVC_UUID);
+    bleChar     = await service.getCharacteristic(CHAR_UUID);
+    setStatus('on');
+  } catch(e) { console.error(e); bleDevice = null; setStatus('off'); }
+}
+
+function setStatus(s) {
+  var dot = document.getElementById('bleDot');
+  var nm  = document.getElementById('bleName');
+  var btn = document.getElementById('bleBtn');
+  dot.className = 'ble-dot' + (s !== 'off' ? ' ' + s : '');
+  btn.className = 'ble-btn' + (s !== 'off' ? ' ' + s : '');
+  if (s === 'on') {
+    nm.textContent = bleDevice ? bleDevice.name : '接続済み';
+    btn.textContent = '切断';
+  } else if (s === 'try') {
+    nm.textContent = '接続中...'; btn.textContent = '接続中';
+  } else {
+    nm.textContent = '未接続'; btn.textContent = '接続';
+  }
+}
+
+async function send(mode) {
+  if (!bleChar) { alert('BLEデバイスに接続してください'); return; }
+  try {
+    await bleChar.writeValue(new TextEncoder().encode(
+      '#TOMFM' + ('00' + mode).slice(-3)
+    ));
+  } catch(e) { console.error(e); }
+}
+
+function sendSel(idx) {
+  send(parseInt(document.getElementById('sel' + idx).value));
+}
+
+// ─────────────────────────────────────────
+// タブ切り替え
+// ─────────────────────────────────────────
+function switchTab(t) {
+  var isJ = t === 'J';
+  document.getElementById('tabJ').classList.toggle('active',  isJ);
+  document.getElementById('tabA').classList.toggle('active', !isJ);
+  document.getElementById('paneJ').style.display = isJ  ? 'flex'  : 'none';
+  document.getElementById('paneA').style.display = !isJ ? 'flex'  : 'none';
+}
+
+// ─────────────────────────────────────────
+initCustom();
+</script>
+</body>
+</html>
