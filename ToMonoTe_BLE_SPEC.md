@@ -155,4 +155,3 @@ await sendMotion(char, 4);   // → じゃんけんランダム
 
 - とものて 紹介ページ: https://protopedia.net/prototype/5011
 - コントローラ WebApp: https://ogimo-tech.github.io/ToMonoTe_controller/
-- ソースコード: https://github.com/ogimo-tech/ToMonoTe_controller
