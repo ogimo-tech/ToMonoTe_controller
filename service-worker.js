@@ -1,4 +1,4 @@
-const CACHE = 'tomonote-v1';
+const CACHE = 'tomonote-v2';
 
 // インストール時: HTML と manifest を先読みキャッシュ
 self.addEventListener('install', event => {

@@ -185,10 +185,16 @@ body {
 
 <!-- Tabs -->
 <div class="tabs">
+  <div class="tab"        id="tabP"  onclick="switchTab('P')" style="display:none">本体<br>パネル</div>
   <div class="tab active" id="tabJ"  onclick="switchTab('J')">じゃんけん</div>
   <div class="tab"        id="tabA2" onclick="switchTab('A2')">あいさつ<br>2×2</div>
   <div class="tab"        id="tabA3" onclick="switchTab('A3')">あいさつ<br>3×3</div>
   <div class="tab"        id="tabA4" onclick="switchTab('A4')">あいさつ<br>4×4</div>
+</div>
+
+<!-- 本体パネルペイン（接続時に本体の8個を表示） -->
+<div class="pane" id="paneP" style="display:none">
+  <div class="btn-grid g3" id="gridP"></div>
 </div>
 
 <!-- じゃんけんペイン -->
@@ -348,6 +354,13 @@ function buildOptHtml(cur) {
   }).join('');
 }
 
+// 本体パネル用: 全アクション(じゃんけん含む 1〜51)から選択
+function buildOptHtmlAll(cur) {
+  return MODES.map(function(m) {
+    return '<option value="' + m.m + '"' + (m.m === cur ? ' selected' : '') + '>' + m.n + '</option>';
+  }).join('');
+}
+
 function buildGrid(gid, cfg) {
   var html = '';
   for (var i = 0; i < cfg.size; i++) {
@@ -390,12 +403,86 @@ function sendSel(gid, idx) {
 }
 
 // ─────────────────────────────────────────
+// 本体パネル（接続時に本体の8個を表示・操作・書き戻し）
+// ─────────────────────────────────────────
+var PANEL_N = 8;
+var devPanel = null;   // 本体パネル8個(FM番号) / 未受信時 null
+
+// 本体パネルグリッド構築（3×3に8個、全アクション選択 + 大ボタン）
+function buildPanelGrid() {
+  var html = '';
+  for (var i = 0; i < PANEL_N; i++) {
+    var def   = devPanel[i] || 5;
+    var entry = modeEntry(def);
+    var name  = entry ? entry.n   : '?';
+    var code  = entry ? entry.img : '00';
+    html +=
+      '<div class="btn-wrap">' +
+        '<div class="sel-row">' +
+          '<select class="btn-select" id="gPs' + i + '" onchange="updatePanelCell(' + i + ')">' +
+            buildOptHtmlAll(def) +
+          '</select>' +
+        '</div>' +
+        '<button class="action-btn" onclick="sendSel(\'P\',' + i + ')">' +
+          '<img id="gPi' + i + '" src="img/' + code + '.jpg" onerror="this.style.display=\'none\'">' +
+          '<div class="fallback" id="gPf' + i + '">' + name + '</div>' +
+          '<div class="label"   id="gPl' + i + '">' + name + '</div>' +
+        '</button>' +
+      '</div>';
+  }
+  document.getElementById('gridP').innerHTML = html;
+}
+
+// セル変更 → 表示更新 + 本体へ書き戻し(#TOMPS)
+function updatePanelCell(idx) {
+  updateCell('P', idx);          // ラベル/画像を更新（既存関数を流用）
+  savePanelToDevice();
+}
+
+// 現在の8選択を #TOMPS で本体へ保存
+async function savePanelToDevice() {
+  if (!bleChar) return;
+  var s = '#TOMPS';
+  for (var i = 0; i < PANEL_N; i++) {
+    var v = parseInt(document.getElementById('gPs' + i).value);
+    devPanel[i] = v;
+    s += ('00' + v).slice(-3);
+  }
+  try { await bleChar.writeValue(new TextEncoder().encode(s)); }
+  catch(e) { console.error(e); }
+}
+
+// "#TOMPG"+3桁×8 → [n0..n7]
+function parsePanel(str) {
+  var body = (str.indexOf('#TOMPG') === 0) ? str.slice(6) : str;
+  var a = [];
+  for (var i = 0; i < PANEL_N; i++) a.push(parseInt(body.substr(i * 3, 3), 10));
+  return a;
+}
+
+// TX NOTIFY 受信 → 値が変わっていれば再構築（書込ループ回避）
+function onPanelNotify(e) {
+  var arr = parsePanel(new TextDecoder().decode(e.target.value));
+  if (arr.length !== PANEL_N || arr.some(function(x){ return isNaN(x); })) return;
+  var same = devPanel && devPanel.every(function(x, i){ return x === arr[i]; });
+  if (same) return;
+  devPanel = arr;
+  buildPanelGrid();
+}
+
+// パネルタブの表示/非表示
+function showPanelTab(show) {
+  document.getElementById('tabP').style.display = show ? '' : 'none';
+}
+
+// ─────────────────────────────────────────
 // BLE
 // ─────────────────────────────────────────
 var SVC_UUID  = 'b1e00030-5011-4b52-8e2d-9b1c3d4e5f60';
 var CHAR_UUID = 'b1e00031-5011-4b52-8e2d-9b1c3d4e5f60';
+var TX_UUID   = 'b1e00032-5011-4b52-8e2d-9b1c3d4e5f60';
 var NAME_PFX  = 'ToMonoTe-BLE-';
-var bleChar = null, bleDevice = null;
+var bleChar = null, bleTxChar = null, bleDevice = null;
 
 async function toggleBLE() {
   if (bleDevice && bleDevice.gatt.connected) {
@@ -408,12 +495,35 @@ async function toggleBLE() {
       optionalServices: [SVC_UUID]
     });
     bleDevice.addEventListener('gattserverdisconnected', function() {
-      bleChar = null; setStatus('off');
+      bleChar = null; bleTxChar = null; devPanel = null;
+      showPanelTab(false);
+      if (document.getElementById('tabP').classList.contains('active')) switchTab('J');
+      setStatus('off');
     });
     var server  = await bleDevice.gatt.connect();
     var service = await server.getPrimaryService(SVC_UUID);
     bleChar     = await service.getCharacteristic(CHAR_UUID);
     setStatus('on');
+
+    // 本体パネル(TX特性)を要求。取得できたら「本体パネル」タブを追加して自動遷移
+    try {
+      bleTxChar = await service.getCharacteristic(TX_UUID);
+      var dv = await bleTxChar.readValue();
+      devPanel = parsePanel(new TextDecoder().decode(dv));
+      if (devPanel.length === PANEL_N && !devPanel.some(function(x){ return isNaN(x); })) {
+        buildPanelGrid();
+        showPanelTab(true);
+        switchTab('P');
+        await bleTxChar.startNotifications();
+        bleTxChar.addEventListener('characteristicvaluechanged', onPanelNotify);
+      } else {
+        devPanel = null;
+      }
+    } catch(e) {
+      // 旧ファーム（TX特性なし）: パネルタブは出さず従来通り
+      bleTxChar = null; devPanel = null; showPanelTab(false);
+      console.warn('panel TX not available', e);
+    }
   } catch(e) { console.error(e); bleDevice = null; setStatus('off'); }
 }
 
@@ -447,7 +557,7 @@ async function send(mode) {
 // ─────────────────────────────────────────
 // タブ切り替え
 // ─────────────────────────────────────────
-var ALL_TABS = ['J', 'A2', 'A3', 'A4'];
+var ALL_TABS = ['P', 'J', 'A2', 'A3', 'A4'];
 
 function switchTab(t) {
   ALL_TABS.forEach(function(id) {
