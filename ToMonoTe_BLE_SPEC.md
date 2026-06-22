@@ -12,8 +12,10 @@ BLE GATT を使ってスマートフォン・タブレットからもモーシ�
 |------|-----|
 | デバイス名プレフィックス | `ToMonoTe-BLE-XXXX` ※末尾4文字はデバイス固有の識別子 |
 | Service UUID | `B1E00030-5011-4B52-8E2D-9B1C3D4E5F60` |
-| Characteristic UUID | `B1E00031-5011-4B52-8E2D-9B1C3D4E5F60` |
-| プロパティ | Write (Write Without Response も可) |
+| RX Characteristic UUID（コマンド送信用） | `B1E00031-5011-4B52-8E2D-9B1C3D4E5F60` / Write・Write Without Response |
+| TX Characteristic UUID（パネル取得用） | `B1E00032-5011-4B52-8E2D-9B1C3D4E5F60` / Read・Notify |
+
+> アプリ→本体のコマンド（FM/PS）は **RX特性** へ Write。本体→アプリのパネル情報（PG）は **TX特性** を Read、または変更時の Notify で受信します。
 
 ---
 
@@ -37,10 +39,12 @@ BLE GATT を使ってスマートフォン・タブレットからもモーシ�
 
 ### 命令コード一覧
 
-| 命令コード | 内容 | ステータス |
-|-----------|------|-----------|
-| `FM` | モーション実行 (FingerMotion) | 実装済み |
-| その他 | 今後追加予定 | — |
+| 命令コード | 内容 | 経路 | ステータス |
+|-----------|------|------|-----------|
+| `FM` | モーション実行 (FingerMotion) | RX(Write) | 実装済み |
+| `PS` | パネル設定（クイック操作8個のFM番号を本体に保存） | RX(Write) | 実装済み (v2.1.6) |
+| `PG` | パネル取得（本体に記憶された8個を読み出し） | TX(Read/Notify) | 実装済み (v2.1.6) |
+| その他 | 今後追加予定 | — | — |
 
 ---
 
@@ -65,6 +69,47 @@ BLE GATT を使ってスマートフォン・タブレットからもモーシ�
 #TOMFM009   → ありがとう
 #TOMFM004   → じゃんけんランダム
 ```
+
+---
+
+### PS 命令（パネル設定）／ PG（パネル取得）
+
+本体は「クイック操作パネル」として **8個のFM番号** を不揮発(NVS)に記憶しています。
+アプリはこの8個を読み出してユーザー設定メニューを表示し、また書き換えできます。
+Web設定画面・BLEのどちらで変更しても同じ値（双方向同期）で、変更時はTX特性へ Notify されます。
+
+#### PS（設定 / アプリ→本体, RX特性へ Write）
+
+```
+#TOMPS<NNN><NNN><NNN><NNN><NNN><NNN><NNN><NNN>
+```
+
+| フィールド | 内容 |
+|-----------|------|
+| `#TOM` | 固定プレフィックス |
+| `PS` | パネル設定命令 |
+| `<NNN>`×8 | パネル index0〜7 のFM番号、各3桁ゼロ埋め（001〜051） |
+
+**合計 30バイト**。各値は本体側で 1〜51 を検証（範囲外/欠落はその枠の現行値を維持）。保存後 TX を Notify。
+
+例: `#TOMPS007001009002010003039004`
+→ index0..7 = 7(おはよう),1(グー),9(ありがとう),2(チョキ),10(バイバイ),3(パー),39(はい),4(ランダム)
+
+#### PG（取得 / 本体→アプリ, TX特性を Read または Notify）
+
+TX特性（`B1E00032-…`, Read/Notify）の値は常に現在のパネルを表します。
+
+```
+#TOMPG<NNN>×8
+```
+
+例: `#TOMPG007001009002010003039004`
+
+- 接続後に TX を **Read** すれば現在の8個を即取得できます。
+- Notify を購読しておくと、本体側（Web/BLE）でパネルが変わるたびに最新値が届きます。
+- アプリは取得した各FM番号を表示し、操作時は `#TOMFM<NNN>` を RX へ送ってモーション実行します。
+
+> パネルは 2列×4行（index 0..7 = 行優先）を想定。FM番号→名称は本仕様「3. モード一覧」を参照。
 
 ---
 
@@ -113,10 +158,13 @@ BLE GATT を使ってスマートフォン・タブレットからもモーシ�
 ## 4. 実装サンプル (Web Bluetooth API / JavaScript)
 
 ```javascript
-const SVC_UUID  = 'b1e00030-5011-4b52-8e2d-9b1c3d4e5f60';
-const CHAR_UUID = 'b1e00031-5011-4b52-8e2d-9b1c3d4e5f60';
+const SVC_UUID = 'b1e00030-5011-4b52-8e2d-9b1c3d4e5f60';
+const RX_UUID  = 'b1e00031-5011-4b52-8e2d-9b1c3d4e5f60'; // Write (FM/PS)
+const TX_UUID  = 'b1e00032-5011-4b52-8e2d-9b1c3d4e5f60'; // Read/Notify (PG)
 
-// BLE 接続
+let rxChar, txChar;
+
+// BLE 接続（RX/TX 両特性を取得）
 async function connect() {
   const device = await navigator.bluetooth.requestDevice({
     filters: [{ namePrefix: 'ToMonoTe-BLE-' }],
@@ -124,20 +172,48 @@ async function connect() {
   });
   const server  = await device.gatt.connect();
   const service = await server.getPrimaryService(SVC_UUID);
-  const char    = await service.getCharacteristic(CHAR_UUID);
-  return char;
+  rxChar = await service.getCharacteristic(RX_UUID);
+  txChar = await service.getCharacteristic(TX_UUID);
 }
 
 // FM命令: モーション送信
-async function sendMotion(char, modeNumber) {
+async function sendMotion(modeNumber) {
   const cmd = '#TOMFM' + String(modeNumber).padStart(3, '0');
-  await char.writeValue(new TextEncoder().encode(cmd));
+  await rxChar.writeValue(new TextEncoder().encode(cmd));
+}
+
+// PG: パネル8個を読み出し（"#TOMPG"+3桁×8 → [n0..n7]）
+function parsePanel(str) {
+  const body = str.startsWith('#TOMPG') ? str.slice(6) : str;
+  const a = [];
+  for (let i = 0; i < 8; i++) a.push(parseInt(body.substr(i * 3, 3), 10));
+  return a;
+}
+async function readPanel() {
+  const dv = await txChar.readValue();
+  return parsePanel(new TextDecoder().decode(dv));
+}
+
+// PG: 変更通知を購読（Web/BLEでパネルが変わると発火）
+async function subscribePanel(onChange) {
+  await txChar.startNotifications();
+  txChar.addEventListener('characteristicvaluechanged', (e) => {
+    onChange(parsePanel(new TextDecoder().decode(e.target.value)));
+  });
+}
+
+// PS: パネル8個を本体に保存（FM番号の配列, 長さ8）
+async function savePanel(arr8) {
+  const cmd = '#TOMPS' + arr8.map(n => String(n).padStart(3, '0')).join('');
+  await rxChar.writeValue(new TextEncoder().encode(cmd));
 }
 
 // 使用例
-const char = await connect();
-await sendMotion(char, 9);   // → ありがとう
-await sendMotion(char, 4);   // → じゃんけんランダム
+await connect();
+const panel = await readPanel();          // 例: [7,1,9,2,10,3,39,4]
+await subscribePanel(p => console.log('panel updated', p));
+await sendMotion(panel[0]);                // パネル先頭のアクションを実行
+await savePanel([7,9,10,28, 4,39,5,6]);    // パネルを書き換え
 ```
 
 ---
@@ -147,7 +223,9 @@ await sendMotion(char, 4);   // → じゃんけんランダム
 - **iOS / iPadOS**: Safari は Web Bluetooth API 非対応。**[Bluefy](https://apps.apple.com/app/bluefy-web-ble-browser/id1492912960)** アプリ（App Store）を使用してください。
 - **Android / Windows**: Chrome ブラウザで Web Bluetooth API が使用できます。
 - 複数デバイスが近くにある場合、デバイス名末尾4文字でロボット個体を識別できます。
-- コマンドに対するレスポンス（返信）はありません。モーション実行は一方向の送信のみです。
+- FM（モーション実行）はRX特性への一方向送信でレスポンスはありません。
+- パネル情報（PG）はTX特性の Read／Notify で取得します（v2.1.6〜）。PS で設定するとTXへ Notify されます。
+- 1メッセージ最大30バイト。iOS/Android は接続時にMTUを自動拡張するため通常問題ありませんが、購読/読み取りが切れる場合はMTU拡張を確認してください。
 
 ---
 
