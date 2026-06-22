@@ -405,8 +405,8 @@ function sendSel(gid, idx) {
 // ─────────────────────────────────────────
 // 本体パネル（接続時に本体の8個を表示・操作・書き戻し）
 // ─────────────────────────────────────────
-var PANEL_N = 8;
-var devPanel = null;   // 本体パネル8個(FM番号) / 未受信時 null
+var PANEL_N = 9;
+var devPanel = null;   // 本体パネル9個(FM番号, 3×3) / 未受信時 null
 
 // 本体パネルグリッド構築（3×3に8個、全アクション選択 + 大ボタン）
 function buildPanelGrid() {
