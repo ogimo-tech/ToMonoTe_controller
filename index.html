@@ -145,6 +145,11 @@ body {
   transform: scale(0.94);
   box-shadow: 0 1px 3px rgba(0,0,0,0.12);
 }
+.action-btn.kb-flash {
+  outline: 3px solid #ffb300;
+  outline-offset: -3px;
+  transform: scale(0.94);
+}
 .g3 .action-btn { border-radius: 10px; border-width: 1.5px; }
 .g4 .action-btn { border-radius:  8px; border-width:  1px;  }
 
@@ -563,13 +568,45 @@ async function send(mode) {
 // タブ切り替え
 // ─────────────────────────────────────────
 var ALL_TABS = ['P', 'J', 'A2', 'A3', 'A4'];
+var currentTab = 'J';
 
 function switchTab(t) {
+  currentTab = t;
   ALL_TABS.forEach(function(id) {
     document.getElementById('tab'  + id).classList.toggle('active', id === t);
     document.getElementById('pane' + id).style.display = (id === t) ? 'flex' : 'none';
   });
 }
+
+// ─────────────────────────────────────────
+// キーボードショートカット（DropTone風）
+//  数字キー 1〜9 / テンキー 1〜9 → 現在表示中タブの n 番目ボタンを押下
+// ─────────────────────────────────────────
+document.addEventListener('keydown', function(e) {
+  // 修飾キー併用は無視（ブラウザ操作を妨げない）
+  if (e.ctrlKey || e.altKey || e.metaKey) return;
+  // 入力欄にフォーカス中は無視
+  var tag = (e.target && e.target.tagName) ? e.target.tagName.toUpperCase() : '';
+  if (tag === 'INPUT' || tag === 'SELECT' || tag === 'TEXTAREA' || (e.target && e.target.isContentEditable)) return;
+
+  // 1〜9 を判定（メイン数字列・テンキー両対応）
+  var n = 0;
+  if (/^[1-9]$/.test(e.key)) n = parseInt(e.key, 10);
+  else if (/^Numpad[1-9]$/.test(e.code)) n = parseInt(e.code.slice(6), 10);
+  if (!n) return;
+
+  var pane = document.getElementById('pane' + currentTab);
+  if (!pane) return;
+  var btns = pane.querySelectorAll('.action-btn');
+  if (n > btns.length) return;          // そのタブにボタンが無ければ無視
+
+  e.preventDefault();
+  var btn = btns[n - 1];
+  btn.click();
+  // 押下フィードバック（一瞬ハイライト）
+  btn.classList.add('kb-flash');
+  setTimeout(function() { btn.classList.remove('kb-flash'); }, 180);
+});
 
 // ─────────────────────────────────────────
 ['A2', 'A3', 'A4'].forEach(function(gid) { buildGrid(gid, GRIDS[gid]); });

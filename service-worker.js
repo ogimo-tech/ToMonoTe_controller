@@ -1,4 +1,4 @@
-const CACHE = 'tomonote-v4';
+const CACHE = 'tomonote-v5';
 const PRECACHE = ['./', './index.html', './manifest.json'];
 
 // インストール: HTML/manifest を先読みキャッシュ
